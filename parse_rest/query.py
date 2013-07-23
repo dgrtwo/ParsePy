@@ -45,6 +45,12 @@ class QueryManager(object):
     def where(self, **kw):
         return self.all().where(**kw)
 
+    def containedIn(self, **kw):
+        return self.all().containedIn(**kw)
+
+    def notContainedIn(self, **kw):
+        return self.all().notContainedIn(**kw)
+
     def lt(self, **kw):
         return self.all().lt(**kw)
 
@@ -80,6 +86,23 @@ class QuerysetMetaclass(type):
                     s._where[k]['$' + fname] = cls.convert_to_parse(v)
                 return s
             setattr(cls, fname, func)
+
+        for fname in ['containedIn']:
+            def func(self, fname=fname, **kwargs):
+                s = copy.deepcopy(self)
+                for k, v in kwargs.items():
+                    s._where[k]['$in'] = cls.convert_to_parse(v)
+                return s
+            setattr(cls, fname, func)
+
+        for fname in ['notContainedIn']:
+            def func(self, fname=fname, **kwargs): 
+                s = copy.deepcopy(self)      
+                for k, v in kwargs.items(): 
+                    s._where[k]['$nin'] = cls.convert_to_parse(v)  
+                return s
+            setattr(cls, fname, func)
+
 
         for fname in ['limit', 'skip']:
             def func(self, value, fname=fname):

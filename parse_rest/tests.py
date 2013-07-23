@@ -269,6 +269,15 @@ class TestQuery(unittest.TestCase):
         self.assertEqual(len(scores_ne_2), 4)
         self.assert_(all([s.score != 2 for s in scores_ne_2]))
 
+        scores_1_and_2 = [1,2]
+        scores_containedIn_2 = list(GameScore.Query.all().containedIn(score=scores_1_and_2))
+        self.assertEqual(len(scores_containedIn_2), 2)
+        self.assert_(all([s.score == 1 or s.score == 2 for s in scores_containedIn_2]))
+
+        scores_notContainedIn_4 = list(GameScore.Query.all().notContainedIn(score=scores_1_and_2))
+        self.assertEqual(len(scores_notContainedIn_4), 3)
+        self.assert_(all([s.score != 1 and s.score != 2 for s in scores_notContainedIn_4]))
+
         # test chaining
         lt_4_gt_2 = list(GameScore.Query.all().lt(score=4).gt(score=2))
         self.assert_(len(lt_4_gt_2) == 1, "chained lt+gt not working")
