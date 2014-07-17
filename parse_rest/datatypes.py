@@ -362,7 +362,7 @@ class Object(ParseResource):
 
     @property
     def as_pointer(self):
-        return Pointer(**{
+        return Pointer({
                 'className': self.__class__.__name__,
                 'objectId': self.objectId
                 })
