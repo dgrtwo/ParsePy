@@ -36,6 +36,13 @@ class QueryManager(object):
         uri = self.model_class.ENDPOINT_ROOT
         return [klass(**it) for it in klass.GET(uri, **kw).get('results')]
 
+    def _relation_fetch(self, **kw):
+        klass = self.model_class
+        uri = self.model_class.ENDPOINT_ROOT
+        #return klass.GET(uri, **kw).get('results')
+        for it in klass.GET(uri, **kw).get('results'):
+            return it
+
     def _count(self, **kw):
         kw.update({"count": 1})
         return self.model_class.GET(self.model_class.ENDPOINT_ROOT, **kw).get('count')
@@ -46,17 +53,19 @@ class QueryManager(object):
     def filter(self, **kw):
         return self.all().filter(**kw)
 
+    def relation_filter(self, **kw):
+        return self.all().filter(**kw)
+
     def fetch(self):
         return self.all().fetch()
 
     def get(self, **kw):
         return self.filter(**kw).get()
 
-
 class Queryset(object):
 
     OPERATORS = [
-        'lt', 'lte', 'gt', 'gte', 'ne', 'in', 'nin', 'exists', 'select', 'dontSelect', 'all', 'relatedTo', 'nearSphere'
+        'lt', 'lte', 'gt', 'gte', 'ne', 'in', 'nin', 'exists', 'select', 'dontSelect', 'all', 'relatedTo', 'nearSphere', 'relation', 'key'
     ]
 
     @staticmethod
@@ -118,15 +127,39 @@ class Queryset(object):
         self._result_cache = self._manager._fetch(**options)
         return self._result_cache
 
+    def _relation_fetch(self, count=False):
+        if self._result_cache is not None:
+            return len(self._result_cache) if count else self._result_cache
+        """
+        Return a list of objects matching query, or if count == True return
+        only the number of objects matching.
+        """
+        options = dict(self._options)  # make a local copy
+        if self._where:
+            # JSON encode WHERE values
+            options['where'] = json.dumps(self._where)
+        if self._select_related:
+            options['include'] = ','.join(self._select_related)
+        if count:
+            return self._manager._count(**options)
+
+        self._result_cache = self._manager._relation_fetch(**options)
+        return self._result_cache
+
     def filter(self, **kw):
         q = copy.deepcopy(self)
         for name, value in kw.items():
             parse_value = Queryset.convert_to_parse(value)
             attr, operator = Queryset.extract_filter_operator(name)
+            relationObject = collections.defaultdict(dict)
             if operator is None:
                 q._where[attr] = parse_value
             elif operator == 'relatedTo':
                 q._where['$' + operator] = parse_value
+            elif operator == 'relation':
+                relationObject['object'] = parse_value
+                relationObject['key'] = attr
+                q._where['$relatedTo'] = relationObject
             else:
                 if not isinstance(q._where[attr], dict):
                     q._where[attr] = {}
