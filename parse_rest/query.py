@@ -39,9 +39,9 @@ class QueryManager(object):
     def _relation_fetch(self, **kw):
         klass = self.model_class
         uri = self.model_class.ENDPOINT_ROOT
-        #return klass.GET(uri, **kw).get('results')
-        for it in klass.GET(uri, **kw).get('results'):
-            return it
+        return klass.GET(uri, **kw).get('results')
+        # for it in klass.GET(uri, **kw).get('results'):
+            #return it
 
     def _count(self, **kw):
         kw.update({"count": 1})
