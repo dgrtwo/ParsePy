@@ -14,10 +14,12 @@ from __future__ import unicode_literals
 
 import base64
 import datetime
+import mimetypes
 import six
 
 from parse_rest.connection import API_ROOT, ParseBase
 from parse_rest.query import QueryManager
+from parse_rest.core import ParseError
 
 
 def complex_type(name=None):
@@ -32,15 +34,20 @@ class ParseType(object):
     type_mapping = {}
 
     @staticmethod
-    def convert_from_parse(parse_data):
+    def convert_from_parse(parse_key, parse_data):
 
-        is_parse_type = isinstance(parse_data, dict) and '__type' in parse_data
+        parse_type = None
+        if isinstance(parse_data, dict):
+            if '__type' in parse_data:
+                parse_type = parse_data.pop('__type')
+            elif parse_key == 'ACL':
+                parse_type = 'ACL'
 
         # if its not a parse type -- simply return it. This means it wasn't a "special class"
-        if not is_parse_type:
+        if not parse_type:
             return parse_data
 
-        native = ParseType.type_mapping.get(parse_data.pop('__type'))
+        native = ParseType.type_mapping.get(parse_type)
         return  native.from_native(**parse_data) if native else parse_data
 
     @staticmethod
@@ -59,6 +66,17 @@ class ParseType(object):
             datetime.datetime: Date,
             ParseResource: Pointer
         }
+
+        if (hasattr(python_object, '__iter__') and
+            not isinstance(python_object, (six.string_types[0], ParseType))):
+            # It's an iterable? Repeat this whole process on each object
+            if isinstance(python_object, dict):
+                for key, value in python_object.iteritems():
+                    python_object[key]=ParseType.convert_to_parse(value, as_pointer=as_pointer)
+                return python_object
+            else:
+                return [ParseType.convert_to_parse(o, as_pointer=as_pointer)
+                    for o in python_object]
 
         if python_type in transformation_map:
             klass = transformation_map.get(python_type)
@@ -174,28 +192,106 @@ class GeoPoint(ParseType):
 
 
 @complex_type()
-class File(ParseType):
+class File(ParseType, ParseBase):
+    ENDPOINT_ROOT = '/'.join([API_ROOT, 'files'])
 
     @classmethod
     def from_native(cls, **kw):
         return cls(**kw)
 
-    def __init__(self, **kw):
-        name = kw.get('name')
+    def __init__(self, name, content=None, mimetype=None, url=None):
         self._name = name
+        self._file_url = url
         self._api_url = '/'.join([API_ROOT, 'files', name])
-        self._file_url = kw.get('url')
+        self._content = content
+        self._mimetype = mimetype or mimetypes.guess_type(name)
+        if not content and not url:
+            with open(name) as f:
+                content = f.read()
+        self._content = content
+
+    def __repr__(self):
+        return '<File:%s>' % (getattr(self, '_name', None))
 
     def _to_native(self):
         return {
             '__type': 'File',
             'name': self._name,
             'url': self._file_url
-            }
+        }
 
+    def save(self, batch=False):
+        if self.url is not None:
+            raise ParseError("Files can't be overwritten")
+        uri = '/'.join([self.__class__.ENDPOINT_ROOT, self.name])
+        headers = {'Content-type': self.mimetype}
+        response = self.__class__.POST(uri, extra_headers=headers, batch=batch, body=self._content)
+        self._file_url = response['url']
+        self._name = response['name']
+        self._api_url = '/'.join([API_ROOT, 'files', self._name])
+
+        if batch:
+            return response, lambda response_dict: None
+
+    def delete(self, batch=False):
+        uri = "/".join(self.__class__.ENDPOINT_ROOT, self.name)
+        response = self.__class__.DELETE(uri, batch=batch)
+
+        if batch:
+            return response, lambda response_dict: None
+
+    mimetype = property(lambda self: self._mimetype)
     url = property(lambda self: self._file_url)
     name = property(lambda self: self._name)
     _absolute_url = property(lambda self: self._api_url)
+
+
+@complex_type()
+class ACL(ParseType):
+
+    @classmethod
+    def from_native(cls, **kw):
+        return cls(kw)
+
+    def __init__(self, acl):
+        self._acl = acl
+
+    def _to_native(self):
+        return self._acl
+
+    def __repr__(self):
+        return '%s(%s)' % (type(self).__name__, repr(self._acl))
+
+    def set_default(self, read=False, write=False):
+        self._set_permission("*", read, write)
+
+    def set_role(self, role, read=False, write=False):
+        if isinstance(role, ParseResource):
+            self._set_permissions("role:%s" % role.name, read, write)
+        else:
+            self._set_permissions("role:%s" % role, read, write)
+
+    def set_user(self, user, read=False, write=False):
+        if isinstance(user, ParseResource):
+            self._set_permission(user.objectId, read, write)
+        else:
+            self._set_permission(user, read, write)
+
+    def set_all(self, permissions):
+        self._acl.clear()
+        for k, v in permissions.items():
+            self._set_permission(k, **v)
+
+    def _set_permission(self, name, read=False, write=False):
+        permissions = {}
+        if read is True:
+            permissions["read"] = True
+        if write is True:
+            permissions["write"] = True
+        if len(permissions):
+            self._acl[name] = permissions
+        else:
+            self._acl.pop(name, None)
 
 
 class Function(ParseBase):
@@ -231,7 +327,7 @@ class ParseResource(ParseBase):
 
     def _init_attrs(self, args):
         for key, value in six.iteritems(args):
-            setattr(self, key, ParseType.convert_from_parse(value))
+            setattr(self, key, ParseType.convert_from_parse(key, value))
 
     def _to_native(self):
         return ParseType.convert_to_parse(self)
