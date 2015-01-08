@@ -470,10 +470,13 @@ star_func(movie="The Matrix")
 Roles
 ---------------
 You can create, update or delete roles as well, using the `parse_rest.role.Role` class. Creating a role requires you to pass a name and an ACL to Role.
+~~~~~ {python}
+from parse_rest.role import Role
 
 admin_role = Role(name='moderators')
 admin_role.ACL = ACL({'*': {'read': True}})
 admin_role.save()
+~~~~~
 
 This, for example, creates a role with the name 'moderators', with an ACL that allows the public to read but not write to this role object.
 
