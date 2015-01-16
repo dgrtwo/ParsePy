@@ -499,7 +499,7 @@ This, for example, creates a role with the name 'moderators', with an ACL that a
 
 Session Tokens
 ---------------
-When querying or updating an object protected by an ACL, parse.com requires the session token of the user with read and write privileges, respectively. You can pass the session token to such queries and updates by using the 'parse_rest.connection.SessionToken' class.
+When querying or updating an object protected by an ACL, parse.com requires the session token of the user with read and write privileges, respectively. You can pass the session token to such queries and updates by using the `parse_rest.connection.SessionToken` class.
 
 ~~~~~ {python}
 from parse_rest.connection import SessionToken
