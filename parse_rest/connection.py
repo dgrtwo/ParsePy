@@ -35,6 +35,18 @@ def register(app_id, rest_key, **kw):
     ACCESS_KEYS.update(**kw)
 
 
+class SessionToken:
+    def __init__(self, token):
+        global ACCESS_KEYS
+        self.token = token
+
+    def __enter__(self):
+        ACCESS_KEYS.update({'session_token': self.token})
+
+    def __exit__(self, type, value, traceback):
+        ACCESS_KEYS['session_token']
+
+
 def master_key_required(func):
     '''decorator describing methods that require the master key'''
     def ret(obj, *args, **kw):
@@ -89,6 +101,9 @@ class ParseBase(object):
         headers.update(extra_headers or {})
 
         request = Request(url, data, headers)
+        
+        if ACCESS_KEYS.get('session_token'):
+            request.add_header('X-Parse-Session-Token', ACCESS_KEYS.get('session_token'))
 
         if master_key and 'X-Parse-Session-Token' not in headers.keys():
             request.add_header('X-Parse-Master-Key', master_key)
