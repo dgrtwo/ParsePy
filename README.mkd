@@ -13,6 +13,7 @@ parse_rest
   - Installation querying
   - push
   - Roles/ACLs**
+  - Session Tokens
   - **PLANNED/TODO**: Image/File type support
 
 
@@ -464,6 +465,23 @@ hello_func()
 star_func = Function("averageStars")
 star_func(movie="The Matrix")
 {u'result': 4.5}
+~~~~~
+
+
+Session Tokens
+---------------
+When querying or updating an object protected by an ACL, parse.com requires the session token of the user with read and write privileges, respectively. You can pass the session token to such queries and updates by using the SessionToken context manager.
+
+~~~~~ {python}
+from parse_rest.connection import SessionToken
+from parse_rest.user import User
+
+u = User.login('dhelmet', '12345')
+token = u.sessionToken
+
+with SessionToken(token):
+    collectedItem = CollectedItem.Query.get(type="Sword") # Get a collected item, Sword, that is protected by ACL
+    print collectedItem
 ~~~~~
 
 
