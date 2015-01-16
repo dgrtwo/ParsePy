@@ -513,5 +513,7 @@ with SessionToken(token):
     print collectedItem
 ~~~~~
 
+Assuming the CollectedItem, 'Sword', is read-protected from the public by an ACL and is readable only by the user, SessionToken allows the user to bypass the ACL and get the 'Sword' item.
+
 
 That's it! This is a first try at a Python library for Parse, and is probably not bug-free. If you run into any issues, please get in touch -- dgrtwo@princeton.edu. Thanks!
