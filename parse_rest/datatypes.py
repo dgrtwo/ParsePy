@@ -402,7 +402,8 @@ class ObjectMetaclass(type):
         # internal NewBase which hasn't set_endpoint_root method
         if hasattr(cls, 'set_endpoint_root'):
             cls.set_endpoint_root()
-            cls.Query = QueryManager(cls)
+
+        cls.Query = QueryManager(cls)
         return cls
 
 

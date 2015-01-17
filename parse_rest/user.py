@@ -11,10 +11,11 @@
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import six
 
 from parse_rest.core import ResourceRequestLoginRequired, ParseError
 from parse_rest.connection import API_ROOT
-from parse_rest.datatypes import ParseResource, ParseType
+from parse_rest.datatypes import ParseResource, ParseType, ObjectMetaclass
 from parse_rest.query import QueryManager
 
 
@@ -28,7 +29,7 @@ def login_required(func):
     return ret
 
 
-class User(ParseResource):
+class User(six.with_metaclass(ObjectMetaclass, ParseResource)):
     '''
     A User is like a regular Parse object (can be modified and saved) but
     it requires additional methods and functionality
@@ -44,9 +45,9 @@ class User(ParseResource):
         if self.is_authenticated(): return
 
         if password is not None:
-            self = User.login(self.username, password)
+            self = self.__class__.login(self.username, password)
 
-        user = User.Query.get(objectId=self.objectId)
+        user = self.__class__.Query.get(objectId=self.objectId)
         if user.objectId == self.objectId and user.sessionToken == session_token:
             self.sessionToken = session_token
 
@@ -60,7 +61,7 @@ class User(ParseResource):
         url = self._absolute_url
         data = self._to_native()
 
-        response = User.PUT(url, extra_headers=session_header, batch=batch, **data)
+        response = self.__class__.PUT(url, extra_headers=session_header, batch=batch, **data)
 
         def call_back(response_dict):
             self.updatedAt = response_dict['updatedAt']
@@ -73,32 +74,32 @@ class User(ParseResource):
     @login_required
     def delete(self):
         session_header = {'X-Parse-Session-Token': self.sessionToken}
-        return User.DELETE(self._absolute_url, extra_headers=session_header)
+        return self.__class__.DELETE(self._absolute_url, extra_headers=session_header)
 
     @classmethod
     def signup(cls, username, password, **kw):
-        response_data = User.POST('', username=username, password=password, **kw)
+        response_data = cls.POST('', username=username, password=password, **kw)
         response_data.update({'username': username})
         return cls(**response_data)
 
     @classmethod
     def login(cls, username, passwd):
         login_url = '/'.join([API_ROOT, 'login'])
-        return cls(**User.GET(login_url, username=username, password=passwd))
+        return cls(**cls.GET(login_url, username=username, password=passwd))
 
     @classmethod
     def login_auth(cls, auth):
-        login_url = User.ENDPOINT_ROOT
-        return cls(**User.POST(login_url, authData=auth))
+        login_url = cls.ENDPOINT_ROOT
+        return cls(**self.__class__.POST(login_url, authData=auth))
 
-    @staticmethod
-    def request_password_reset(email):
+    @classmethod
+    def request_password_reset(cls, email):
         '''Trigger Parse\'s Password Process. Return True/False
         indicate success/failure on the request'''
 
         url = '/'.join([API_ROOT, 'requestPasswordReset'])
         try:
-            User.POST(url, email=email)
+            cls.POST(url, email=email)
             return True
         except ParseError:
             return False
@@ -113,6 +114,3 @@ class User(ParseResource):
 
     def __repr__(self):
         return '<User:%s (Id %s)>' % (getattr(self, 'username', None), self.objectId)
-
-
-User.Query = QueryManager(User)
