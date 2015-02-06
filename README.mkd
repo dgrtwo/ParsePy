@@ -421,6 +421,11 @@ Push.alert({"alert": "The Mets scored! The game is now tied 1-1.",
             where={"scores": True})
 ~~~~~
 
+You can modify the channels a specific Installation is subscribed to with ParsePy using the method ```Installation.update_channels``` on an instance of Installation (since it needs the Installation ID). To add someone to the "Giants" channel and remove them from the "Mets" channel, you'd do:
+
+~~~~ {python}
+some_installation.update_channels({'Giants',}, {'Mets',})
+~~~~
 
 Cloud Functions
 ---------------
