@@ -488,6 +488,17 @@ star_func = Function("averageStars")
 star_func(movie="The Matrix")
 {u'result': 4.5}
 ~~~~~
+If you need to pass a parse_rest.datatypes.Object to your function, make sure to call ParseType.convert_to_parse on this object
+~~~~~ {python}
+from parse_rest.datatypes import Function, Object, ParseType
+
+new_movie = Object()
+new_movie.title = "The Matrix"
+new_movie.rating = 4.5
+star_func = Function("addMovie") # addMovie would be a function used to add a movie in the database
+star_func(movie=ParseType.convert_to_parse(new_movie))
+{u'result': "Movie added"}
+~~~~~
 
 
 ACLs
