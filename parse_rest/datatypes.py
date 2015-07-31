@@ -404,8 +404,6 @@ class ObjectMetaclass(type):
             cls.set_endpoint_root()
             cls.Query = QueryManager(cls)
         return cls
-
-
 class Object(six.with_metaclass(ObjectMetaclass, ParseResource)):
     ENDPOINT_ROOT = '/'.join([API_ROOT, 'classes'])
 
@@ -468,6 +466,22 @@ class Object(six.with_metaclass(ObjectMetaclass, ParseResource)):
             }
         self.__class__.PUT(self._absolute_url, **payload)
         del self.__dict__[key]
+
+    def addUnique(self, key, value):
+        """
+        Add a unique value to the array column.
+        """
+        if not isinstance(value, basestring):
+            raise NotImplementedError("value must be a string")
+        payload = {
+            key: {
+                '__op': 'AddUnique',
+                'objects': [value]
+                }
+            }
+        self.__class__.PUT(self._absolute_url, **payload)
+        if key not in self.__dict__ or value not in self.__dict__[key]:
+            self.__dict__[key].append(value)
 
     def removeRelation(self, key, className, objectsId):
         self.manageRelation('RemoveRelation', key, className, objectsId)
