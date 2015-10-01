@@ -12,6 +12,7 @@ import subprocess
 import unittest
 import datetime
 import six
+import json
 from itertools import chain
 
 from parse_rest.core import ResourceRequestNotFound
@@ -19,7 +20,7 @@ from parse_rest.connection import register, ParseBatcher
 from parse_rest.datatypes import GeoPoint, Object, Function, Pointer
 from parse_rest.user import User
 from parse_rest import query
-from parse_rest.installation import Push
+from parse_rest.installation import Installation, Push
 
 try:
     import settings_local
@@ -49,6 +50,24 @@ GLOBAL_JSON_TEXT = """{
     }
 }
 """
+
+INSTALLATION_JSON_TEXT = """{
+        "appIdentifier": "com.game",
+        "appName": "parse_py_game_test",
+        "appVersion": "0.0.1",
+        "channels": [
+            "channel_one",
+            "channel_two"
+        ],
+        "createdAt": "2015-01-18T15:32:32.783Z",
+        "deviceToken": "slartibartfast",
+        "deviceTokenLastModified": 1422287135000,
+        "deviceType": "android",
+        "parseVersion": "1.8.0",
+        "pushType": "gcm",
+        "timeZone": "Asia/Dubai",
+        "updatedAt": "2015-01-28T19:01:07.501Z"
+    }"""
 
 
 class Game(Object):
@@ -577,6 +596,32 @@ class TestPush(unittest.TestCase):
         Push.alert({"alert": "The Mets scored! The game is now tied 1-1.",
                     "badge": "Increment", "title": "Mets Score"},
                    channels=["Mets"], where={"scores": True})
+
+
+class TestInstallation(unittest.TestCase):
+    """
+    tests that an installation can be created and have it's channels modified
+    """
+    installation = None
+
+    def setUp(self):
+        # post application
+        install_info = json.loads(INSTALLATION_JSON_TEXT)
+        self.installation = Installation(**install_info)
+        self.installation.save()
+
+    def testUpdateNotificationChannels(self):
+        unsubscribe = {self.installation.channels[0],}
+        subscribe = {"channel_three",}
+        self.installation.update_channels(subscribe, unsubscribe)
+
+        # double check that the changes were actually sent/saved on parse
+        parse_channels = Installation.GET(self.installation._absolute_url)['channels']
+        self.assertNotIn(self.installation.channels[0], parse_channels)
+        self.assertIn("channel_three", parse_channels)
+
+    def tearDown(self):
+        self.installation.delete()
 
 
 def run_tests():
