@@ -33,7 +33,7 @@ class User(ParseResource):
     A User is like a regular Parse object (can be modified and saved) but
     it requires additional methods and functionality
     '''
-    ENDPOINT_ROOT = '/'.join([API_ROOT, 'users'])
+    ENDPOINT_ROOT = '/'.join([API_ROOT, '_User'])
     PROTECTED_ATTRIBUTES = ParseResource.PROTECTED_ATTRIBUTES + [
         'username', 'sessionToken', 'emailVerified']
 
