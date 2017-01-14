@@ -30,13 +30,14 @@ ACCESS_KEYS = {}
 CONNECTION_TIMEOUT = 60
 
 
-def register(app_id, rest_key, **kw):
+def register(app_id, rest_key, api_root='https://api.parse.com/1', **kw):
     global ACCESS_KEYS
     ACCESS_KEYS = {
         'app_id': app_id,
         'rest_key': rest_key
         }
     ACCESS_KEYS.update(**kw)
+    API_ROOT = api_root
 
 
 class SessionToken:
