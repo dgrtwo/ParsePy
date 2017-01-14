@@ -65,12 +65,12 @@ class MasterKey:
 
 def master_key_required(func):
     '''decorator describing methods that require the master key'''
-    def ret(obj, *args, **kw):
+    def ret(*args, **kw):
         conn = ACCESS_KEYS
         if not (conn and conn.get('master_key')):
             message = '%s requires the master key' % func.__name__
             raise core.ParseError(message)
-        func(obj, *args, **kw)
+        return func(*args, **kw)
     return ret
 
 # Using this as "default=" argument solve the problem with Datetime object not being JSON serializable
