@@ -135,7 +135,7 @@ class Queryset(object):
             if operator is None:
                 q._where[attr] = parse_value
             elif operator == 'relatedTo':
-                q._where['$' + operator] = {'object': parse_value, 'key': attr}
+                q._where['$' + operator] = {'object': parse_value, 'key' : attr }
             else:
                 if not isinstance(q._where[attr], dict):
                     q._where[attr] = {}
