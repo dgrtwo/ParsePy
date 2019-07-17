@@ -83,7 +83,7 @@ class ParseBase(object):
     ENDPOINT_ROOT = API_ROOT
 
     @classmethod
-    def execute(cls, uri, http_verb, extra_headers=None, batch=False, _body=None, unverified=False, **kw):
+    def execute(cls, uri, http_verb, extra_headers=None, batch=False, _body=None, ignore_cert=False, **kw):
         """
         if batch == False, execute a command with the given parameters and
         return the response JSON.
@@ -138,8 +138,8 @@ class ParseBase(object):
         request.get_method = lambda: http_verb
 
         try:
-            if unverified:
-                context = ssl._create_unverified_context()
+            if ignore_cert:
+                context = ssl._create_ignore_cert_context()
                 response = urlopen(request, timeout=CONNECTION_TIMEOUT, context=context)
             else:
                 response = urlopen(request, timeout=CONNECTION_TIMEOUT)

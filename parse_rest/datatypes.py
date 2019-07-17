@@ -339,12 +339,12 @@ class File(ParseType, ParseBase):
             'url': self._file_url
         }
 
-    def save(self, batch=False, unverified=False):
+    def save(self, batch=False, ignore_cert=False):
         if self.url is not None:
             raise ParseError("Files can't be overwritten")
         uri = '/'.join([self.__class__.ENDPOINT_ROOT, self.name])
         headers = {'Content-type': self.mimetype}
-        response = self.__class__.POST(uri, extra_headers=headers, batch=batch, _body=self._content, unverified=unverified)
+        response = self.__class__.POST(uri, extra_headers=headers, batch=batch, _body=self._content, ignore_cert=ignore_cert)
         self._file_url = response['url']
         self._name = response['name']
         self._api_url = '/'.join([API_ROOT, 'files', self._name])
@@ -477,15 +477,15 @@ class ParseResource(ParseBase):
     def _set_created_datetime(self, value):
         self._created_at = Date(value)
 
-    def save(self, batch=False, unverified=False):
+    def save(self, batch=False, ignore_cert=False):
         if self.objectId:
-            return self._update(batch=batch, unverified=unverified)
+            return self._update(batch=batch, ignore_cert=ignore_cert)
         else:
-            return self._create(batch=batch, unverified=unverified)
+            return self._create(batch=batch, ignore_cert=ignore_cert)
 
-    def _create(self, batch=False, unverified=False):
+    def _create(self, batch=False, ignore_cert=False):
         uri = self.__class__.ENDPOINT_ROOT
-        response = self.__class__.POST(uri, batch=batch, unverified=unverified, **self._to_native())
+        response = self.__class__.POST(uri, batch=batch, ignore_cert=ignore_cert, **self._to_native())
 
         def call_back(response_dict):
             self.createdAt = self.updatedAt = response_dict['createdAt']
@@ -496,8 +496,8 @@ class ParseResource(ParseBase):
         else:
             call_back(response)
 
-    def _update(self, batch=False, unverified=False):
-        response = self.__class__.PUT(self._absolute_url, batch=batch, unverified=unverified, **self._to_native())
+    def _update(self, batch=False, ignore_cert=False):
+        response = self.__class__.PUT(self._absolute_url, batch=batch, ignore_cert=ignore_cert, **self._to_native())
 
         def call_back(response_dict):
             self.updatedAt = response_dict['updatedAt']
@@ -507,8 +507,8 @@ class ParseResource(ParseBase):
         else:
             call_back(response)
 
-    def delete(self, batch=False, unverified=False):
-        response = self.__class__.DELETE(self._absolute_url, batch=batch, unverified=unverified)
+    def delete(self, batch=False, ignore_cert=False):
+        response = self.__class__.DELETE(self._absolute_url, batch=batch, ignore_cert=ignore_cert)
         if batch:
             return response, lambda response_dict: None
 
