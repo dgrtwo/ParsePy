@@ -14,6 +14,7 @@
 from six.moves.urllib.request import Request, urlopen
 from six.moves.urllib.error import HTTPError
 from six.moves.urllib.parse import urlencode, urlparse
+import ssl
 
 import json
 
@@ -82,7 +83,7 @@ class ParseBase(object):
     ENDPOINT_ROOT = API_ROOT
 
     @classmethod
-    def execute(cls, uri, http_verb, extra_headers=None, batch=False, _body=None, **kw):
+    def execute(cls, uri, http_verb, extra_headers=None, batch=False, _body=None, unverified=False, **kw):
         """
         if batch == False, execute a command with the given parameters and
         return the response JSON.
@@ -137,7 +138,11 @@ class ParseBase(object):
         request.get_method = lambda: http_verb
 
         try:
-            response = urlopen(request, timeout=CONNECTION_TIMEOUT)
+            if unverified:
+                context = ssl._create_unverified_context()
+                response = urlopen(request, timeout=CONNECTION_TIMEOUT, context=context)
+            else:
+                response = urlopen(request, timeout=CONNECTION_TIMEOUT)
         except HTTPError as e:
             exc = {
                 400: core.ResourceRequestBadRequest,
